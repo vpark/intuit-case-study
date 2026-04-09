@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chase AI Assistant — Interactive Prototype v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:#242424;color:#fff;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+/* ---- Page Layout ---- */
+.header{text-align:center;padding:48px 20px 24px}
+.header h1{font-size:28px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;letter-spacing:-0.5px}
+.header p{color:#666;font-size:13px;margin-top:6px;font-weight:400}
+
+/* ---- Scenario Pills ---- */
+.scenario-pills{display:flex;justify-content:center;gap:8px;padding:0 20px 32px;flex-wrap:wrap;max-width:820px;margin:0 auto}
+.pill{padding:8px 16px;border-radius:100px;border:1.5px solid #333;background:transparent;color:#999;font-size:12px;font-weight:600;cursor:pointer;transition:all .25s ease;font-family:inherit;white-space:nowrap;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:6px}
+.pill:hover{border-color:#555;color:#ccc}
+.pill.active{background:#003087;border-color:#003087;color:#fff}
+.pill:active{transform:scale(0.96)}
+.pill svg{width:14px;height:14px;flex-shrink:0}
+
+/* ---- Phone Container ---- */
+.phone-container{display:flex;justify-content:center;padding:0 20px 80px}
+
+/* ---- iPhone Frame ---- */
+.phone{width:390px;height:844px;background:#F5F7FA;border-radius:55px;border:3px solid #333;position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,0.05),0 30px 80px rgba(0,0,0,0.6)}
+
+/* ---- Dynamic Island ---- */
+.dynamic-island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:126px;height:37px;background:#000;border-radius:22px;z-index:200}
+
+/* ---- Status Bar ---- */
+.status-bar{position:relative;z-index:150;display:flex;justify-content:space-between;align-items:center;padding:17px 32px 0;height:54px}
+.sb-time{font-size:16px;font-weight:600;letter-spacing:-0.3px;color:#000}
+.sb-right{display:flex;align-items:center;gap:6px}
+
+/* ---- Home Indicator ---- */
+.home-ind{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:100px;background:rgba(0,0,0,0.2);z-index:200}
+
+/* ---- Screen Area ---- */
+.screen{position:absolute;top:54px;left:0;right:0;bottom:0;overflow:hidden;display:flex;flex-direction:column}
+
+/* ---- Step Dots ---- */
+.dots{display:flex;justify-content:center;gap:6px;padding:8px 0 4px;flex-shrink:0;z-index:10}
+.dot{width:8px;height:4px;border-radius:100px;background:#d4d4d4;transition:all .3s ease}
+.dot.active{width:24px;background:#003087}
+.dot.done{background:#0D8552}
+
+/* ---- Slides ---- */
+.slides-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
+.slide{position:absolute;inset:0;opacity:0;transform:translateX(100%);transition:all .35s cubic-bezier(0.4,0,0.2,1);pointer-events:none;display:flex;flex-direction:column;overflow:hidden}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:auto}
+.slide.exit-left{opacity:0;transform:translateX(-100%)}
+.slide.exit-up{opacity:0;transform:translateY(-30%)}
+
+/* ---- Bottom Nav (Step Arrows) ---- */
+.step-nav{display:flex;justify-content:space-between;align-items:center;padding:6px 20px 30px;flex-shrink:0;z-index:50;position:relative;background:#F5F7FA}
+.step-nav-btn{width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;background:#e8edf2;color:#000;-webkit-tap-highlight-color:transparent}
+.step-nav-label{font-size:12px;font-weight:500;letter-spacing:0.2px;color:#999;position:absolute;left:50%;transform:translateX(-50%)}
+.step-nav-btn:disabled{opacity:.15;cursor:default}
+.step-nav-btn:active:not(:disabled){transform:scale(0.92)}
+
+/* ---- Chase Header Gradient ---- */
+.chase-header{background:linear-gradient(135deg,#003087 0%,#004DB3 100%);padding:56px 24px 20px;color:#fff;position:relative}
+.chase-header-inner{display:flex;justify-content:space-between;align-items:flex-start}
+.chase-greeting{font-size:22px;font-weight:700;letter-spacing:-0.3px;line-height:1.3}
+.chase-greeting-sub{font-size:14px;font-weight:400;opacity:0.75;margin-top:2px}
+.chase-avatar{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chase-balance-card{background:rgba(255,255,255,0.12);border-radius:14px;padding:14px 16px;margin-top:16px;backdrop-filter:blur(8px)}
+.chase-balance-label{font-size:12px;font-weight:500;opacity:0.7}
+.chase-balance-val{font-size:28px;font-weight:800;letter-spacing:-0.5px;margin-top:2px}
+
+/* ---- Chat Styles ---- */
+.chat-container{flex:1;padding:12px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;background:#F5F7FA;scroll-behavior:smooth}
+.msg-row{display:flex;align-items:flex-end;gap:8px;animation:fadeSlideUp .35s ease both}
+.msg-row.agent{align-self:flex-start;max-width:88%}
+.msg-row.user{align-self:flex-end;flex-direction:row-reverse;max-width:85%}
+.msg-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-bottom:2px}
+.msg-bubble{padding:11px 15px;border-radius:18px;font-size:14px;line-height:1.5;font-weight:400}
+.msg-row.agent .msg-bubble{background:#fff;color:#1A1A1A;border-bottom-left-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.msg-row.user .msg-bubble{background:#003087;color:#fff;border-bottom-right-radius:6px}
+
+/* ---- Typing Indicator ---- */
+.typing-row{display:flex;align-items:flex-end;gap:8px;align-self:flex-start;animation:fadeSlideUp .25s ease both}
+.typing-bubble{display:flex;gap:4px;padding:12px 18px;background:#fff;border-radius:18px;border-bottom-left-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:#b0b8c4;animation:typingBounce 1.4s ease-in-out infinite}
+.typing-dot:nth-child(2){animation-delay:0.2s}
+.typing-dot:nth-child(3){animation-delay:0.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* ---- Cards ---- */
+.card{background:#fff;border-radius:16px;padding:16px;margin:8px 0;box-shadow:0 1px 3px rgba(0,0,0,0.08);animation:fadeSlideUp .4s ease both}
+
+/* ---- Health Grid ---- */
+.health-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.health-item{background:#F5F7FA;border-radius:12px;padding:12px;text-align:center}
+.health-item .h-label{font-size:11px;color:#6B7280;font-weight:500;margin-bottom:4px}
+.health-item .h-value{font-size:18px;font-weight:700;color:#1A1A1A}
+.health-item .h-value.fair{color:#B8860B}
+.health-item .h-value.good{color:#0D8552}
+.health-item .h-value.warn{color:#D32F2F}
+
+/* ---- Score Ring ---- */
+.score-ring-wrap{width:88px;height:88px;position:relative;margin:0 auto 8px}
+.score-ring-wrap svg{width:88px;height:88px}
+.score-ring-val{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:22px;font-weight:800;color:#1A1A1A;letter-spacing:-0.5px}
+.score-ring-label{font-size:11px;font-weight:600;text-align:center;margin-top:2px}
+
+/* ---- Bill List ---- */
+.bill-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #E5E7EB}
+.bill-item:last-child{border-bottom:none}
+.bill-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:700;color:#fff}
+.bill-info{flex:1}
+.bill-name{font-size:14px;font-weight:600;color:#1A1A1A}
+.bill-date{font-size:12px;color:#6B7280;margin-top:1px}
+.bill-amount{font-size:15px;font-weight:700;color:#1A1A1A;text-align:right}
+
+/* ---- Transaction List ---- */
+.tx-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #E5E7EB}
+.tx-item:last-child{border-bottom:none}
+.tx-icon-circle{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:700;color:#fff}
+.tx-info{flex:1}
+.tx-name{font-size:14px;font-weight:600;color:#1A1A1A}
+.tx-date{font-size:12px;color:#6B7280;margin-top:1px}
+.tx-amount{font-size:14px;font-weight:700;color:#1A1A1A;text-align:right}
+.tx-amount.neg{color:#D32F2F}
+.tx-amount.pos{color:#0D8552}
+
+/* ---- Confirmation Row ---- */
+.confirm-row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;font-size:14px;gap:12px}
+.confirm-label{color:#6B7280;font-weight:400;flex-shrink:0}
+.confirm-value{font-weight:600;color:#1A1A1A;text-align:right}
+
+/* ---- Success Screen ---- */
+.success-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:32px 24px;background:#F5F7FA}
+.success-icon{width:80px;height:80px;border-radius:50%;background:#E6F4ED;display:flex;align-items:center;justify-content:center;margin-bottom:20px;animation:popIn .5s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes popIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+.success-title{font-size:22px;font-weight:700;color:#1A1A1A;letter-spacing:-0.3px;text-align:center}
+
+/* ---- Chase Tab Bar ---- */
+.tab-bar{display:flex;justify-content:space-around;align-items:center;padding:8px 0 8px;background:#fff;border-top:1px solid #E5E7EB;flex-shrink:0;z-index:50}
+.tab-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;-webkit-tap-highlight-color:transparent;padding:4px 12px}
+.tab-item svg{width:22px;height:22px}
+.tab-item span{font-size:10px;font-weight:600;color:#6B7280}
+.tab-item.active svg{color:#003087}
+.tab-item.active span{color:#003087}
+
+/* ---- AI Banner ---- */
+.ai-banner{display:flex;align-items:center;gap:10px;padding:12px 16px;margin:12px 16px;background:#EDF4FE;border-radius:14px;cursor:pointer;transition:all .15s}
+.ai-banner:active{transform:scale(0.98)}
+.ai-banner-icon{width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.ai-banner-text{flex:1;font-size:13px;font-weight:600;color:#003087}
+.ai-banner-arrow{color:#003087;flex-shrink:0}
+
+/* ---- Smart Card ---- */
+.smart-card{background:#EDF4FE;border-radius:12px;padding:12px 14px;margin:8px 0;border-left:3px solid #003087}
+.smart-card-title{font-size:13px;font-weight:700;color:#003087;display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.smart-card-body{font-size:13px;color:#1A1A1A;line-height:1.5}
+
+/* ---- Quick Reply ---- */
+.quick-replies{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;animation:fadeSlideUp .35s ease both}
+.qr-btn{padding:8px 16px;border-radius:100px;border:1.5px solid #003087;background:transparent;color:#003087;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.qr-btn:active{transform:scale(0.96);background:#003087;color:#fff}
+
+/* ---- Animations ---- */
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ================================================================
+   V2: LOCK SCREEN
+   ================================================================ */
+.lock-screen{height:100%;background:radial-gradient(ellipse at 50% 100%,#1a237e 0%,#0d1117 50%,#000 100%);display:flex;flex-direction:column;align-items:center;padding-top:70px;position:relative}
+.lock-time-wrap{text-align:center}
+.lock-time{font-size:72px;font-weight:300;color:#fff;letter-spacing:-2px;line-height:1}
+.lock-date{font-size:17px;font-weight:400;color:rgba(255,255,255,0.65);margin-top:8px}
+.ios-notif{width:calc(100% - 32px);margin-top:28px;background:rgba(255,255,255,0.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:16px;padding:14px;cursor:pointer;transition:all .15s;animation:notifSlideIn .5s ease both .8s;opacity:0}
+.ios-notif:active{transform:scale(0.98);background:rgba(255,255,255,0.95)}
+.notif-header{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.notif-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#003087;padding:2px;flex-shrink:0}
+.notif-icon svg{width:16px;height:16px}
+.notif-app{font-size:12px;font-weight:600;color:#6B7280;letter-spacing:0.3px}
+.notif-when{font-size:12px;color:#9CA3AF;margin-left:auto}
+.notif-title{font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:3px}
+.notif-body{font-size:13px;color:#374151;line-height:1.45}
+.lock-hint{position:absolute;bottom:55px;font-size:12px;color:rgba(255,255,255,0.3);font-weight:500;letter-spacing:0.3px}
+.lock-bottom-icons{position:absolute;bottom:20px;width:calc(100% - 64px);display:flex;justify-content:space-between}
+.lock-icon-btn{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.7)}
+@keyframes notifSlideIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+
+/* V2: No-animation helper for backward nav */
+.no-anim .msg-row,.no-anim .card,.no-anim .quick-replies,.no-anim .typing-row,.no-anim .success-icon,.no-anim .ios-notif{animation:none !important;opacity:1 !important}
+
+/* ---- Responsive ---- */
+@media(max-width:500px){.phone{transform:scale(0.82);transform-origin:top center}.phone-container{padding-bottom:40px}}
+
+/* ---- Phone Themes (status bar + bg) ---- */
+.phone.theme-dark{background:#000}
+.phone.theme-dark .status-bar,.phone.theme-header .status-bar{filter:invert(1)}
+.phone.theme-dark .step-nav{background:transparent}
+.phone.theme-dark .step-nav-btn{background:rgba(255,255,255,0.1)}
+.phone.theme-dark .step-nav-btn svg{filter:invert(1)}
+.phone.theme-dark .step-nav-label{color:rgba(255,255,255,0.4)}
+.phone.theme-dark .dots .dot{background:rgba(255,255,255,0.2)}
+.phone.theme-dark .dots .dot.active{background:rgba(255,255,255,0.6)}
+.phone.theme-dark .dots .dot.done{background:rgba(255,255,255,0.4)}
+.phone.theme-dark .home-ind{background:rgba(255,255,255,0.2)}
+.phone.theme-header{background:#003087}
+
+/* ---- Smart Card inside Card fix ---- */
+.card:has(> .smart-card){background:transparent;padding:0;box-shadow:none}
+.card > .smart-card{box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+</style>
+</head>
+<body>
+
+<!--
+================================================================
+NAVIGATION FLOW DOCUMENTATION — v2
+================================================================
+
+SCENARIO 1: Notification (1 step — separate entry point)
+  Step 0: iOS Lock Screen [push notification from Chase AI]
+    → TAP notification ──────────────────── → Scenario 2 (slide-up transition)
+
+SCENARIO 2: Financial Snapshot (4 steps)
+  Step 0: Home Screen [Chase app with alert banner]
+    → TAP amber alert banner ────────────── → Step 1 (slide transition)
+    → TAP "Ask Chase AI anything" banner ── → Step 1
+    → Arrow right (fallback) ────────────── → Step 1
+
+  Step 1: Chat — Agent intro + capabilities
+    → TAP "Show me what you found" ──────── → Step 2 (SCROLL-APPEND)
+    → Arrow right (fallback) ────────────── → Step 2
+
+  Step 2: Chat — Financial Snapshot card (scrolled into view)
+    → TAP "What needs my attention?" ────── → Step 3 (SCROLL-APPEND)
+    → Arrow right (fallback) ────────────── → Step 3
+
+  Step 3: Chat — Overdraft Alert + Transfer card (scrolled into view)
+    → TAP "Move $300" ──────────────────── → Scenario 3, Step 0 (slide)
+
+SCENARIO 3: Help Me Save (2 steps)
+  Step 0: Chat — Transfer confirmed + Auto-Save proposal
+    → TAP "Set up $150/paycheck" ─────────── → Step 1 (SCROLL-APPEND)
+    → Arrow right (fallback) ─────────────── → Step 1
+
+  Step 1: Chat — Auto-Save confirmed + transition
+    → TAP "Show my subscriptions" ────────── → Scenario 4 (slide)
+
+SCENARIO 4: Subscriptions (2 steps)
+  Step 0: Chat — Subscription list + alerts + links
+    → TAP "Wrap up my session" ───────────── → Step 1 (slide)
+    → Arrow right (fallback) ─────────────── → Step 1
+
+  Step 1: Session Summary screen
+
+TRANSITION TYPES:
+  • Lock → Home: slide-up (mimics phone unlock)
+  • Screen → Screen: slide-left (standard iOS navigation)
+  • Within chat (append steps): scroll-down + animated message reveal
+  • Between scenarios: slide-left (context switch)
+
+BACKWARD NAV (arrow left): Always re-renders full screen at that step.
+================================================================
+-->
+
+<div class="header">
+  <h1>
+    <div style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:#003087"><svg viewBox="101.9 0 23.3 24" fill="#003087" width="32" height="32"><path d="M110.243 0C109.786 0 109.422 0.380486 109.422 0.851933V6.78663H124.616L117.695 0H110.243Z"/><path d="M125.173 8.58806C125.173 8.11661 124.809 7.73834 124.35 7.73834H118.605V23.4259L125.173 16.2832V8.58806Z"/><path d="M116.853 24C117.304 24 117.678 23.6195 117.678 23.1503V17.2156H102.482L109.399 23.9989L116.853 24Z"/><path d="M101.924 15.4182C101.924 15.8841 102.295 16.2623 102.747 16.2623H108.497V0.573669L101.93 7.72082L101.924 15.4182Z"/></svg></div>
+    <span style="color:#003087;font-weight:800">Chase</span> <span style="font-weight:400;color:#999">AI Assistant</span>
+  </h1>
+  <p>Interactive Prototype v2 &mdash; One Connected Journey</p>
+</div>
+
+<div class="scenario-pills" id="scenarioPills"></div>
+
+<div class="phone-container">
+  <div class="phone" id="chasePhone">
+    <div class="dynamic-island"></div>
+    <div class="status-bar" id="statusBar">
+      <span class="sb-time">9:41</span>
+      <div class="sb-right">
+        <svg width="18" height="12" viewBox="0 0 18 12" fill="none"><rect x="0" y="7" width="3.2" height="5" rx="0.8" fill="#000"/><rect x="4.8" y="4.5" width="3.2" height="7.5" rx="0.8" fill="#000"/><rect x="9.6" y="2" width="3.2" height="10" rx="0.8" fill="#000"/><rect x="14.4" y="0" width="3.2" height="12" rx="0.8" fill="#000"/></svg>
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="#000"><path d="M8.5 3.2c-2.1 0-4 .8-5.4 2.1L1.7 3.8C3.5 2 5.9 1 8.5 1s5 1 6.8 2.8L13.9 5.3C12.5 4 10.6 3.2 8.5 3.2zm0 4c-1.2 0-2.3.5-3.1 1.2L4 7C5.2 5.8 6.8 5.2 8.5 5.2S11.8 5.8 13 7l-1.4 1.4C10.8 7.7 9.7 7.2 8.5 7.2zM8.5 12l-2-2c.5-.5 1.2-.8 2-.8s1.5.3 2 .8l-2 2z"/></svg>
+        <svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="#000" stroke-opacity=".3"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#000"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="#000" opacity=".35"/></svg>
+      </div>
+    </div>
+    <div class="screen">
+      <div class="dots" id="stepDots"></div>
+      <div class="slides-wrap" id="slidesWrap"></div>
+      <div class="step-nav" id="stepNav">
+        <button class="step-nav-btn" id="btnBack" onclick="navigate(-1)"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L2 8l6 6"/></svg></button>
+        <span class="step-nav-label" id="stepLabel"></span>
+        <button class="step-nav-btn" id="btnNext" onclick="navigate(1)"><svg width="10" height="16" viewBox="0 0 10 16" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l6 6-6 6"/></svg></button>
+      </div>
+    </div>
+    <div class="home-ind"></div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   ICON SYSTEM
+   ================================================================ */
+const ICON_MAP = {
+  dollar:'dollar-sign', creditCard:'credit-card', piggyBank:'piggy-bank',
+  transfer:'arrow-right-left', send:'send', trendingUp:'trending-up',
+  bell:'bell', shield:'shield', checkCircle:'circle-check',
+  checkWhite:'check', checkGreen:'circle-check', alertTriangle:'triangle-alert',
+  xCircle:'circle-x', calendar:'calendar', clock:'clock', user:'user',
+  home:'house', invest:'activity', card:'credit-card', more:'ellipsis',
+  arrowLeft:'arrow-left', chevronRight:'chevron-right', sparkle:'sparkles',
+  chatBubble:'message-square', search:'search', gear:'settings',
+  receipt:'receipt', trendingDown:'trending-down', lock:'lock',
+  wallet:'wallet', target:'target', repeat:'repeat',
+  flashlight:'flashlight', camera:'camera',
+};
+
+const CUSTOM_SVG = {
+  chaseLogo: `<svg viewBox="101.9 0 23.3 24" fill="currentColor"><path d="M110.243 0C109.786 0 109.422 0.380486 109.422 0.851933V6.78663H124.616L117.695 0H110.243Z"/><path d="M125.173 8.58806C125.173 8.11661 124.809 7.73834 124.35 7.73834H118.605V23.4259L125.173 16.2832V8.58806Z"/><path d="M116.853 24C117.304 24 117.678 23.6195 117.678 23.1503V17.2156H102.482L109.399 23.9989L116.853 24Z"/><path d="M101.924 15.4182C101.924 15.8841 102.295 16.2623 102.747 16.2623H108.497V0.573669L101.93 7.72082L101.924 15.4182Z"/></svg>`,
+  chaseLogoWhite: `<svg viewBox="101.9 0 23.3 24" fill="#fff"><path d="M110.243 0C109.786 0 109.422 0.380486 109.422 0.851933V6.78663H124.616L117.695 0H110.243Z"/><path d="M125.173 8.58806C125.173 8.11661 124.809 7.73834 124.35 7.73834H118.605V23.4259L125.173 16.2832V8.58806Z"/><path d="M116.853 24C117.304 24 117.678 23.6195 117.678 23.1503V17.2156H102.482L109.399 23.9989L116.853 24Z"/><path d="M101.924 15.4182C101.924 15.8841 102.295 16.2623 102.747 16.2623H108.497V0.573669L101.93 7.72082L101.924 15.4182Z"/></svg>`,
+  chaseLogoBlue: `<svg viewBox="101.9 0 23.3 24" fill="#003087"><path d="M110.243 0C109.786 0 109.422 0.380486 109.422 0.851933V6.78663H124.616L117.695 0H110.243Z"/><path d="M125.173 8.58806C125.173 8.11661 124.809 7.73834 124.35 7.73834H118.605V23.4259L125.173 16.2832V8.58806Z"/><path d="M116.853 24C117.304 24 117.678 23.6195 117.678 23.1503V17.2156H102.482L109.399 23.9989L116.853 24Z"/><path d="M101.924 15.4182C101.924 15.8841 102.295 16.2623 102.747 16.2623H108.497V0.573669L101.93 7.72082L101.924 15.4182Z"/></svg>`,
+};
+
+function svgIcon(name, size) {
+  if (CUSTOM_SVG[name]) {
+    return '<div style="width:'+size+'px;height:'+size+'px;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+CUSTOM_SVG[name]+'</div>';
+  }
+  var lucideName = ICON_MAP[name] || name;
+  return '<i data-lucide="'+lucideName+'" style="width:'+size+'px;height:'+size+'px;flex-shrink:0"></i>';
+}
+
+/* ================================================================
+   V2: SCENARIO DEFINITIONS WITH STEP TYPES
+   - type:'screen' → full slide replacement
+   - type:'append' → scroll-down + animated chat append
+   ================================================================ */
+const SCENARIOS = [
+  { id:'notification', label:'Notification', icon:'bell',
+    steps: [
+      { label:'Lock Screen', type:'screen' },
+    ]
+  },
+  { id:'snapshot', label:'Financial Snapshot', icon:'trendingUp',
+    steps: [
+      { label:'Home', type:'screen' },
+      { label:'Chat Intro', type:'screen' },
+      { label:'Your Snapshot', type:'append' },
+      { label:'Overdraft Alert', type:'append' },
+    ]
+  },
+  { id:'save', label:'Help Me Save', icon:'piggyBank',
+    steps: [
+      { label:'Auto-Save Setup', type:'screen' },
+      { label:'Confirmed', type:'append' },
+    ]
+  },
+  { id:'subscriptions', label:'Subscriptions', icon:'receipt',
+    steps: [
+      { label:'Your Subscriptions', type:'screen' },
+      { label:'Session Summary', type:'screen' },
+    ]
+  },
+];
+
+var currentScenario = 0;
+var currentStep = 0;
+var animTimers = [];
+var exitUpNext = false;
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
+function appendHtml(container, html) {
+  var temp = document.createElement('div');
+  temp.innerHTML = html;
+  while (temp.firstChild) container.appendChild(temp.firstChild);
+}
+
+function scrollChat(container) {
+  container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+}
+
+function clearTimers() {
+  animTimers.forEach(function(t) { clearTimeout(t); });
+  animTimers = [];
+}
+
+/* ================================================================
+   MESSAGE PRIMITIVES
+   ================================================================ */
+function agentMsg(text, delay) {
+  return '<div class="msg-row agent" style="animation-delay:'+(delay||0)+'ms"><div class="msg-avatar"><div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center">'+CUSTOM_SVG.chaseLogoBlue+'</div></div><div class="msg-bubble">'+text+'</div></div>';
+}
+
+function userMsg(text, delay) {
+  return '<div class="msg-row user" style="animation-delay:'+(delay||0)+'ms"><div class="msg-bubble">'+text+'</div></div>';
+}
+
+function typingIndicator(delay) {
+  return '<div class="typing-row" style="animation-delay:'+(delay||0)+'ms"><div class="msg-avatar"><div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center">'+CUSTOM_SVG.chaseLogoBlue+'</div></div><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
+}
+
+function cardBlock(content, delay) {
+  return '<div class="msg-row agent" style="animation-delay:'+(delay||0)+'ms;max-width:92%"><div class="msg-avatar" style="visibility:hidden;width:28px;flex-shrink:0"></div><div class="card" style="margin:0;animation-delay:'+(delay||0)+'ms">'+content+'</div></div>';
+}
+
+function quickReplies(options, delay) {
+  return '<div class="quick-replies" style="animation-delay:'+(delay||0)+'ms;padding-left:36px">'+options.map(function(o) {
+    var label = typeof o === 'string' ? o : o.label;
+    var action = typeof o === 'string' ? 'advancePhase()' : o.action;
+    return '<div class="qr-btn" onclick="'+action+'">'+label+'</div>';
+  }).join('')+'</div>';
+}
+
+function scoreRing(score, max, color, label) {
+  var radius = 40, circ = 2 * Math.PI * radius;
+  var pct = score / max;
+  var offset = circ * (1 - pct);
+  return '<div class="score-ring-wrap"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="'+radius+'" fill="none" stroke="#E5E7EB" stroke-width="8" transform="rotate(-90 50 50)"/><circle cx="50" cy="50" r="'+radius+'" fill="none" stroke="'+color+'" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+circ+'" stroke-dashoffset="'+circ+'" transform="rotate(-90 50 50)" style="animation:scoreArcAnim 1s ease forwards;--target:'+offset+'"/></svg><div class="score-ring-val">'+score+'</div></div><div class="score-ring-label" style="color:'+color+'">'+label+'</div><style>@keyframes scoreArcAnim{from{stroke-dashoffset:'+circ+'}to{stroke-dashoffset:'+offset+'}}</style>';
+}
+
+/* ---- Tab Bar ---- */
+function buildTabBar(active) {
+  var tabs = [
+    { id:'home', icon:'home', label:'Home' },
+    { id:'pay', icon:'creditCard', label:'Pay' },
+    { id:'ai', icon:null, label:'AI', custom:true },
+    { id:'invest', icon:'invest', label:'Invest' },
+    { id:'more', icon:'more', label:'More' },
+  ];
+  return '<div class="tab-bar">' + tabs.map(function(t) {
+    var isActive = t.id === active;
+    var color = isActive ? '#003087' : '#6B7280';
+    var iconHtml;
+    if (t.custom) {
+      iconHtml = '<div style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:'+color+'">'+CUSTOM_SVG.chaseLogo+'</div>';
+    } else {
+      iconHtml = '<div style="color:'+color+'">'+svgIcon(t.icon,22)+'</div>';
+    }
+    return '<div class="tab-item'+(isActive?' active':'')+'">' + iconHtml + '<span>'+t.label+'</span></div>';
+  }).join('') + '</div>';
+}
+
+/* ---- Chat Wrapper ---- */
+function chatWrap(messages) {
+  return '<div style="flex:1;display:flex;flex-direction:column;background:#F5F7FA;min-height:0">'+
+    '<div style="background:#003087;padding:16px 20px 14px;display:flex;align-items:center;gap:10px">'+
+      '<div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center">'+CUSTOM_SVG.chaseLogoWhite+'</div>'+
+      '<div style="font-size:16px;font-weight:700;color:#fff;letter-spacing:-0.2px">Chase AI Assistant</div>'+
+      '<div style="margin-left:auto;display:flex;align-items:center;gap:4px"><div style="color:rgba(255,255,255,0.5)">'+svgIcon('sparkle',16)+'</div></div>'+
+    '</div>'+
+    '<div class="chat-container">'+messages+'</div>'+
+    '<div style="padding:8px 16px 0;background:#F5F7FA;flex-shrink:0">'+
+      '<div style="background:#fff;border-radius:24px;padding:12px 16px;display:flex;align-items:center;gap:8px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">'+
+        '<span style="flex:1;font-size:14px;color:#9CA3AF">Ask about your finances...</span>'+
+        '<div style="color:#003087">'+svgIcon('send',18)+'</div>'+
+      '</div>'+
+    '</div>'+
+    buildTabBar('ai')+
+  '</div>';
+}
+
+/* ================================================================
+   V2: LOCK SCREEN
+   ================================================================ */
+function buildLockScreen() {
+  return '<div class="lock-screen">'+
+    '<div class="lock-time-wrap">'+
+      '<div class="lock-time">9:41</div>'+
+      '<div class="lock-date">Monday, April 7</div>'+
+    '</div>'+
+    '<div class="ios-notif" onclick="exitUpNext=true;switchScenario(1)">'+
+      '<div class="notif-header">'+
+        '<div class="notif-icon">'+CUSTOM_SVG.chaseLogoWhite+'</div>'+
+        '<span class="notif-app">CHASE</span>'+
+        '<span class="notif-when">now</span>'+
+      '</div>'+
+      '<div class="notif-title">\u26a0\ufe0f Upcoming Overdraft Risk</div>'+
+      '<div class="notif-body">Your checking may not cover rent ($1,200) on Apr 10. I found a fix \u2014 tap to review.</div>'+
+    '</div>'+
+    '<div class="lock-hint">Tap notification to open</div>'+
+    '<div class="lock-bottom-icons">'+
+      '<div class="lock-icon-btn">'+svgIcon('flashlight',20)+'</div>'+
+      '<div class="lock-icon-btn">'+svgIcon('camera',20)+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ================================================================
+   HOME SCREEN
+   ================================================================ */
+function buildHomeScreen() {
+  var transactions = [
+    { init:'W', color:'#0D8552', name:'Whole Foods Market', date:'Today, 2:34 PM', amount:'-$47.23', cls:'neg' },
+    { init:'S', color:'#1A73E8', name:'Spotify', date:'Yesterday', amount:'-$9.99', cls:'neg' },
+    { init:'A', color:'#003087', name:'Amazon', date:'Apr 3', amount:'-$124.50', cls:'neg' },
+    { init:'D', color:'#6D1ED4', name:'Direct Deposit', date:'Apr 1', amount:'+$1,700.00', cls:'pos' },
+  ];
+  var txHtml = transactions.map(function(t) {
+    return '<div class="tx-item"><div class="tx-icon-circle" style="background:'+t.color+'">'+t.init+'</div><div class="tx-info"><div class="tx-name">'+t.name+'</div><div class="tx-date">'+t.date+'</div></div><div class="tx-amount '+t.cls+'">'+t.amount+'</div></div>';
+  }).join('');
+
+  return '<div style="flex:1;display:flex;flex-direction:column;background:#F5F7FA;min-height:0">'+
+    '<div class="chase-header">'+
+      '<div class="chase-header-inner">'+
+        '<div><div class="chase-greeting">Good afternoon, Alex</div><div class="chase-greeting-sub">Here\u2019s your overview</div></div>'+
+        '<div class="chase-avatar">'+svgIcon('user',22)+'</div>'+
+      '</div>'+
+      '<div class="chase-balance-card">'+
+        '<div class="chase-balance-label">Checking Account</div>'+
+        '<div class="chase-balance-val">$1,247.33</div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="flex:1;overflow-y:auto;padding:0;min-height:0">'+
+      '<div style="margin:12px 16px;background:#FFF8E7;border-radius:14px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;border-left:3px solid #B8860B;cursor:pointer" onclick="advancePhase()">'+
+        '<div style="width:28px;height:28px;border-radius:8px;background:rgba(184,134,11,0.12);display:flex;align-items:center;justify-content:center;color:#B8860B;flex-shrink:0;margin-top:1px">'+svgIcon('bell',14)+'</div>'+
+        '<div style="flex:1">'+
+          '<div style="font-size:11px;font-weight:700;color:#B8860B;letter-spacing:0.3px">CHASE AI ALERT</div>'+
+          '<div style="font-size:13px;color:#1A1A1A;margin-top:3px;line-height:1.4">Your checking may not cover upcoming bills. I found a fix \u2014 tap to review.</div>'+
+        '</div>'+
+        '<div style="color:#B8860B;flex-shrink:0;margin-top:4px">'+svgIcon('chevronRight',14)+'</div>'+
+      '</div>'+
+      '<div style="padding:16px 16px 8px;font-size:14px;font-weight:700;color:#1A1A1A">Recent Transactions</div>'+
+      '<div style="padding:0 16px">'+txHtml+'</div>'+
+    '</div>'+
+    '<div class="ai-banner" style="margin:0 16px 8px;flex-shrink:0" onclick="advancePhase()">'+
+      '<div class="ai-banner-icon"><div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center">'+CUSTOM_SVG.chaseLogoBlue+'</div></div>'+
+      '<div class="ai-banner-text">Ask Chase AI anything</div>'+
+      '<div class="ai-banner-arrow">'+svgIcon('chevronRight',16)+'</div>'+
+    '</div>'+
+    buildTabBar('home')+
+  '</div>';
+}
+
+/* ================================================================
+   CUMULATIVE CHAT BUILDERS
+   Build chat content up to a given step.
+   Used for both forward renders and backward nav re-renders.
+   ================================================================ */
+
+function buildSnapshotChat(upToStep) {
+  var isBase = (upToStep === 1);
+  var d = isBase ? 1 : 0;
+  var content = '';
+
+  // Capabilities data
+  var caps = [
+    { icon:'trendingUp', color:'#003087', bg:'#EDF4FE', title:'Financial Overview', desc:'Your snapshot, credit score, spending trends' },
+    { icon:'piggyBank', color:'#0D8552', bg:'#E6F4ED', title:'Savings Agent', desc:'Auto-save, round-ups, overdraft buffers' },
+    { icon:'send', color:'#1A73E8', bg:'#E8F0FE', title:'Send & Pay', desc:'Zelle transfers, bill pay via natural language' },
+    { icon:'receipt', color:'#B8860B', bg:'#FFF8E7', title:'Subscription Manager', desc:'Review recurring charges, flag unused' },
+    { icon:'target', color:'#6D1ED4', bg:'#F3EEFE', title:'Spending Insights', desc:'Budgets, alerts, spending controls' },
+  ];
+  var capsHtml = caps.map(function(c, i) {
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0'+(i<caps.length-1?';border-bottom:1px solid #E5E7EB':'')+'"><div style="width:32px;height:32px;border-radius:8px;background:'+c.bg+';display:flex;align-items:center;justify-content:center;color:'+c.color+';flex-shrink:0">'+svgIcon(c.icon,16)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:#1A1A1A">'+c.title+'</div><div style="font-size:11px;color:#6B7280">'+c.desc+'</div></div></div>';
+  }).join('');
+
+  // Step 2: Intro + capabilities
+  content += agentMsg("Hey Alex \ud83d\udc4b I\u2019m your Chase AI assistant. Here are some things I can help with:", 0);
+  content += cardBlock('<div style="font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:6px;display:flex;align-items:center;gap:6px"><div style="color:#003087">'+svgIcon('sparkle',18)+'</div>What I Can Help With</div>'+capsHtml, 600*d);
+  content += agentMsg("I\u2019ve already been looking at your accounts and noticed a few things worth your attention. Want me to walk you through them?", 1200*d);
+
+  if (upToStep === 1) {
+    content += quickReplies([{label:"Show me what you found", action:"advancePhase()"}, "Maybe later"], 1600*d);
+    return chatWrap(content);
+  }
+
+  // Step 3: Financial Snapshot (rendered statically for backward nav)
+  content += userMsg("Show me what you found");
+  content += agentMsg("I looked at your accounts. Here\u2019s where you stand:");
+  content += cardBlock(
+    '<div style="font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:4px;display:flex;align-items:center;gap:6px"><div style="color:#003087">'+svgIcon('trendingUp',18)+'</div>Financial Snapshot</div>'+
+    '<div class="health-grid">'+
+      '<div class="health-item">'+scoreRing(676, 850, '#B8860B', 'Fair')+'</div>'+
+      '<div class="health-item"><div class="h-label">Checking</div><div class="h-value" style="color:#1A1A1A">$1,247</div></div>'+
+      '<div class="health-item"><div class="h-label">Savings</div><div class="h-value" style="color:#1A1A1A">$840</div></div>'+
+      '<div class="health-item"><div class="h-label">Subscriptions</div><div class="h-value fair">8 ($127/mo)</div></div>'+
+      '<div class="health-item"><div class="h-label">Monthly Spending</div><div class="h-value fair">~$3,100</div></div>'+
+      '<div class="health-item"><div class="h-label">Auto-Save</div><div class="h-value warn">Not set up</div></div>'+
+    '</div>'
+  );
+  content += agentMsg("I see a few things to work on. But first \u2014 something needs your attention right now.");
+
+  if (upToStep === 2) {
+    content += quickReplies([{label:"What needs my attention?", action:"advancePhase()"}]);
+    return chatWrap(content);
+  }
+
+  // Step 4: Overdraft Alert
+  content += userMsg("What needs my attention?");
+  content += cardBlock(
+    '<div class="smart-card" style="margin:0;background:#FFF8E7;border-left-color:#B8860B">'+
+      '<div class="smart-card-title" style="color:#B8860B"><div style="color:#B8860B">'+svgIcon('alertTriangle',16)+'</div>\u26a0\ufe0f Upcoming Overdraft Risk</div>'+
+      '<div class="smart-card-body">Your rent ($1,200) auto-pays on April 10. After that, you\u2019ll have $47 in checking. Your electric bill ($127) hits April 12 \u2014 that\u2019s an overdraft.</div>'+
+    '</div>'
+  );
+  content += agentMsg("I can move $300 from savings to checking right now to cover both. Want me to?");
+  content += cardBlock(
+    '<div style="font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:8px;display:flex;align-items:center;gap:6px"><div style="color:#003087">'+svgIcon('transfer',18)+'</div>Suggested Transfer</div>'+
+    '<div class="confirm-row"><span class="confirm-label">From</span><span class="confirm-value">Savings (...7892) \u2014 $840</span></div>'+
+    '<div class="confirm-row"><span class="confirm-label">To</span><span class="confirm-value">Checking (...4821) \u2014 $1,247</span></div>'+
+    '<div class="confirm-row"><span class="confirm-label">Amount</span><span class="confirm-value" style="font-size:16px;font-weight:800;color:#003087">$300.00</span></div>'+
+    '<div style="border-top:1px solid #E5E7EB;margin-top:8px;padding-top:8px">'+
+      '<div class="confirm-row"><span class="confirm-label">After transfer</span><span class="confirm-value">Checking $1,547 / Savings $540</span></div>'+
+      '<div class="confirm-row"><span class="confirm-label">Covers</span><span class="confirm-value" style="color:#0D8552">Rent ($1,200) + Electric ($127) + $220 buffer</span></div>'+
+    '</div>'
+  );
+  content += quickReplies([{label:"Move $300", action:"switchScenario(2)"}, {label:"I\u2019ll handle it", action:"switchScenario(2)"}]);
+  return chatWrap(content);
+}
+
+/* ---- Save Chat (cumulative) ---- */
+function buildSaveChat(upToStep) {
+  var content = '';
+
+  // Step 0: Transfer confirmed + auto-save proposal
+  content += userMsg("Move $300", 0);
+  content += agentMsg("Done. $300 moved to checking. Rent and electric are covered.", 400);
+  content += cardBlock(
+    '<div style="font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:8px;display:flex;align-items:center;gap:6px"><div style="color:#0D8552">'+svgIcon('checkCircle',18)+'</div>Transfer Complete</div>'+
+    '<div class="confirm-row"><span class="confirm-label">Checking</span><span class="confirm-value" style="color:#0D8552">$1,547 \u2713</span></div>'+
+    '<div class="confirm-row"><span class="confirm-label">Savings</span><span class="confirm-value">$540</span></div>'+
+    '<div style="border-top:1px solid #E5E7EB;margin-top:8px;padding-top:8px">'+
+      '<div class="confirm-row"><span class="confirm-label">Next bills covered</span><span class="confirm-value" style="color:#0D8552">Rent (Apr 10), Electric (Apr 12) \u2713</span></div>'+
+    '</div>',
+  800);
+  content += agentMsg("This happened because you don\u2019t have a savings buffer set up. Want me to help you build one so you\u2019re not caught short again?", 1400);
+  content += cardBlock(
+    '<div style="font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:8px;display:flex;align-items:center;gap:6px"><div style="color:#003087">'+svgIcon('piggyBank',18)+'</div>Recommended Auto-Save</div>'+
+    '<div class="confirm-row"><span class="confirm-label">Based on</span><span class="confirm-value">$3,400/mo income, $3,100/mo spending</span></div>'+
+    '<div class="confirm-row"><span class="confirm-label">Safe to save</span><span class="confirm-value" style="color:#003087;font-weight:800">$150/paycheck</span></div>'+
+    '<div class="confirm-row"><span class="confirm-label">Frequency</span><span class="confirm-value">Every 2 weeks (on payday)</span></div>'+
+    '<div class="confirm-row"><span class="confirm-label">Keeps buffer</span><span class="confirm-value">$200 minimum in checking</span></div>'+
+    '<div style="margin-top:8px;padding:10px 14px;background:#E6F4ED;border-radius:10px;font-size:13px;color:#0D8552;font-weight:600;display:flex;align-items:center;gap:6px"><div style="color:#0D8552">'+svgIcon('trendingUp',16)+'</div>6-month projection: +$1,800 in savings</div>',
+  1800);
+
+  if (upToStep === 0) {
+    content += quickReplies([{label:"Set up $150/paycheck", action:"advancePhase()"}, "Adjust amount"], 2400);
+    return chatWrap(content);
+  }
+
+  // Step 1: Confirmed (static for backward nav)
+  content += userMsg("Set up $150/paycheck");
+  content += agentMsg("All set! Here\u2019s your savings plan:");
+  content += cardBlock(
+    '<div style="font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:8px;display:flex;align-items:center;gap:6px"><div style="color:#0D8552">'+svgIcon('checkCircle',18)+'</div>Auto-Save Active</div>'+
+    '<div class="confirm-row"><span class="confirm-label">Amount</span><span class="confirm-value">$150 per paycheck</span></div>'+
+    '<div class="confirm-row"><span class="confirm-label">Frequency</span><span class="confirm-value">Every 2 weeks</span></div>'+
+    '<div class="confirm-row"><span class="confirm-label">First transfer</span><span class="confirm-value">April 15, 2026</span></div>'+
+    '<div class="confirm-row"><span class="confirm-label">Overdraft guard</span><span class="confirm-value" style="color:#0D8552">If checking drops below $200, auto-save pauses</span></div>'+
+    '<div style="border-top:1px solid #E5E7EB;margin-top:8px;padding-top:8px">'+
+      '<div class="confirm-row"><span class="confirm-label">6-month projection</span><span class="confirm-value" style="color:#0D8552">$1,800</span></div>'+
+      '<div class="confirm-row"><span class="confirm-label">1-year projection</span><span class="confirm-value" style="color:#0D8552">$3,600</span></div>'+
+    '</div>'
+  );
+  content += agentMsg("Now that your savings are running \u2014 want to see what you\u2019re paying for every month? I found a few things worth looking at.");
+  content += quickReplies([{label:"Show my subscriptions", action:"switchScenario(3)"}, {label:"That\u2019s enough for today", action:"switchScenario(3)"}]);
+  return chatWrap(content);
+}
+
+/* ---- Subscriptions Chat ---- */
+function buildSubscriptionsChat() {
+  var subs = [
+    { init:'N', color:'#D32F2F', name:'Netflix', amount:'$15.49/mo', status:'Price changed from $13.99', statusColor:'#B8860B', card:'Visa ...4821', badge:'PRICE \u0394', badgeColor:'#B8860B' },
+    { init:'S', color:'#0D8552', name:'Spotify', amount:'$9.99/mo', status:'Approved', statusColor:'#0D8552', card:'Visa ...4821', badge:null },
+    { init:'\u2601', color:'#1A73E8', name:'iCloud', amount:'$2.99/mo', status:'Approved', statusColor:'#0D8552', card:'Visa ...4821', badge:null },
+    { init:'G', color:'#003087', name:'Gym', amount:'$45.00/mo', status:'Reviewed 2 weeks ago', statusColor:'#6B7280', card:'Debit ...4821', badge:null },
+    { init:'A', color:'#6D1ED4', name:'Adobe CC', amount:'$22.99/mo', status:'\u26a0\ufe0f Never reviewed \u2014 5 months', statusColor:'#B8860B', card:'Mastercard ...7892', badge:null },
+    { init:'P', color:'#B8860B', name:'Paramount+', amount:'$13.99/mo', status:'\u26a0\ufe0f Never reviewed \u2014 4 months', statusColor:'#B8860B', card:'Visa ...4821', badge:null },
+    { init:'N', color:'#6B7280', name:'NYT', amount:'$4.25/mo', status:'Reviewed yesterday', statusColor:'#0D8552', card:'Visa ...4821', badge:null },
+    { init:'H', color:'#1A73E8', name:'Hulu', amount:'$11.99/mo', status:'First charge Mar 15', statusColor:'#1A73E8', card:'Visa ...4821', badge:'NEW', badgeColor:'#1A73E8' },
+  ];
+  var subsHtml = subs.map(function(s) {
+    return '<div class="bill-item"><div class="bill-icon" style="background:'+s.color+'">'+s.init+'</div><div class="bill-info"><div class="bill-name">'+s.name+(s.badge ? ' <span style="font-size:9px;font-weight:700;color:#fff;background:'+s.badgeColor+';padding:1px 5px;border-radius:4px;margin-left:4px;vertical-align:middle;letter-spacing:0.3px">'+s.badge+'</span>' : '')+'</div><div class="bill-date" style="color:'+s.statusColor+'">'+s.status+' <span style="color:#D4D4D4">\u00b7</span> <span style="color:#9CA3AF;font-weight:400">'+s.card+'</span></div></div><div class="bill-amount">'+s.amount+'</div></div>';
+  }).join('');
+
+  var content = '';
+  content += userMsg("Show my subscriptions", 0);
+  content += agentMsg("Here are all recurring charges I found in your last 90 days:", 400);
+  content += cardBlock(
+    '<div style="font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:8px;display:flex;align-items:center;gap:6px"><div style="color:#003087">'+svgIcon('receipt',18)+'</div>Monthly Subscriptions \u2014 $126.70/mo</div>'+
+    subsHtml+
+    '<div style="display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid #E5E7EB"><span style="font-size:14px;font-weight:700;color:#1A1A1A">Total</span><span style="font-size:16px;font-weight:800;color:#003087">$126.70/mo</span></div>',
+  800);
+  content += agentMsg("Two subscriptions have been charging for months without being reviewed:", 1400);
+  content += cardBlock(
+    '<div class="smart-card" style="margin:0;background:#FFF8E7;border-left-color:#B8860B">'+
+      '<div class="smart-card-title" style="color:#B8860B"><div style="color:#B8860B">'+svgIcon('alertTriangle',16)+'</div>Unreviewed Subscriptions \u2014 $36.98/mo ($444/year)</div>'+
+      '<div class="smart-card-body">'+
+        '<div style="padding:4px 0"><strong>Adobe Creative Cloud</strong> \u2014 $22.99/mo on Mastercard ...7892 \u2014 never reviewed</div>'+
+        '<div style="padding:4px 0"><strong>Paramount+</strong> \u2014 $13.99/mo on Visa ...4821 \u2014 never reviewed</div>'+
+      '</div>'+
+    '</div>',
+  1800);
+  content += agentMsg("I can\u2019t cancel these for you \u2014 that has to be done through each service. But here are direct links:", 2200);
+  content += '<div class="msg-row agent" style="animation-delay:2600ms;max-width:92%"><div class="msg-avatar" style="visibility:hidden;width:28px;flex-shrink:0"></div><div style="display:flex;flex-direction:column;gap:8px;width:100%"><div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.08);cursor:pointer"><span style="font-size:14px;font-weight:600;color:#003087">Cancel Adobe CC</span><div style="color:#003087">'+svgIcon('chevronRight',16)+'</div></div><div style="display:flex;align-items:center;justify-content:space-between;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.08);cursor:pointer"><span style="font-size:14px;font-weight:600;color:#003087">Cancel Paramount+</span><div style="color:#003087">'+svgIcon('chevronRight',16)+'</div></div></div></div>';
+  content += agentMsg("If you cancel both, that\u2019s $444 back in your pocket this year.", 3000);
+  content += quickReplies([{label:"Wrap up my session", action:"advancePhase()"}], 3400);
+  return chatWrap(content);
+}
+
+/* ---- Summary Screen ---- */
+function buildSummaryScreen() {
+  return '<div style="flex:1;display:flex;flex-direction:column;background:#F5F7FA;min-height:0">'+
+    '<div style="background:#003087;padding:16px 20px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0">'+
+      '<div style="width:28px;height:28px;display:flex;align-items:center;justify-content:center">'+CUSTOM_SVG.chaseLogoWhite+'</div>'+
+      '<div style="font-size:16px;font-weight:700;color:#fff;letter-spacing:-0.2px">Chase AI Assistant</div>'+
+      '<div style="margin-left:auto;display:flex;align-items:center;gap:4px"><div style="color:rgba(255,255,255,0.5)">'+svgIcon('sparkle',16)+'</div></div>'+
+    '</div>'+
+    '<div class="success-screen" style="justify-content:flex-start;padding-top:24px;overflow-y:auto">'+
+      '<div class="success-icon" style="background:#E6F4ED"><div style="color:#0D8552">'+svgIcon('checkGreen',40)+'</div></div>'+
+      '<div class="success-title">Here\u2019s What Changed Today</div>'+
+      '<div class="card" style="width:100%;max-width:320px;margin-top:20px;animation-delay:300ms">'+
+        '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #E5E7EB"><div style="color:#0D8552;flex-shrink:0;margin-top:2px">'+svgIcon('checkCircle',20)+'</div><div><div style="font-size:13px;font-weight:700;color:#1A1A1A">Overdraft prevented</div><div style="font-size:12px;color:#6B7280;margin-top:2px">$300 moved from savings \u2014 rent and electric covered</div></div></div>'+
+        '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #E5E7EB"><div style="color:#0D8552;flex-shrink:0;margin-top:2px">'+svgIcon('checkCircle',20)+'</div><div><div style="font-size:13px;font-weight:700;color:#1A1A1A">Auto-save activated</div><div style="font-size:12px;color:#6B7280;margin-top:2px">$150/paycheck starting April 15</div></div></div>'+
+        '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #E5E7EB"><div style="color:#B8860B;flex-shrink:0;margin-top:2px">'+svgIcon('alertTriangle',20)+'</div><div><div style="font-size:13px;font-weight:700;color:#1A1A1A">2 unused subscriptions found</div><div style="font-size:12px;color:#6B7280;margin-top:2px">$36.98/mo ($444/year) \u2014 cancellation links provided</div></div></div>'+
+        '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0"><div style="color:#1A73E8;flex-shrink:0;margin-top:2px">'+svgIcon('shield',20)+'</div><div><div style="font-size:13px;font-weight:700;color:#1A1A1A">Credit score: 676</div><div style="font-size:12px;color:#6B7280;margin-top:2px">We can work on improving this next time</div></div></div>'+
+      '</div>'+
+      '<div style="font-size:12px;color:#6B7280;margin-top:16px;text-align:center;padding:0 16px">I\u2019ll keep watching your accounts and let you know if anything needs attention.</div>'+
+    '</div>'+
+    buildTabBar('ai')+
+  '</div>';
+}
+
+/* ================================================================
+   STEP CONTENT ROUTER
+   ================================================================ */
+function getStepContent(scenarioId, step) {
+  switch(scenarioId) {
+    case 'notification':
+      return buildLockScreen();
+    case 'snapshot':
+      if (step === 0) return buildHomeScreen();
+      return buildSnapshotChat(step);
+    case 'save':
+      return buildSaveChat(step);
+    case 'subscriptions':
+      if (step === 0) return buildSubscriptionsChat();
+      if (step === 1) return buildSummaryScreen();
+  }
+}
+
+/* ================================================================
+   V2: ANIMATED APPEND REVEALS
+   Called when advancing forward to an 'append' type step.
+   Appends content to existing chat with typing → message → scroll.
+   ================================================================ */
+function performAppendReveal(scenarioId, step) {
+  var chat = document.querySelector('.slide.active .chat-container');
+  if (!chat) { renderStep(); return; }
+
+  if (scenarioId === 'snapshot' && step === 2) appendSnapshotCards(chat);
+  else if (scenarioId === 'snapshot' && step === 3) appendOverdraftAlert(chat);
+  else if (scenarioId === 'save' && step === 1) appendSaveConfirm(chat);
+}
+
+function appendSnapshotCards(chat) {
+  clearTimers();
+  var qr = chat.querySelector('.quick-replies'); if (qr) qr.remove();
+
+  appendHtml(chat, userMsg("Show me what you found"));
+  appendHtml(chat, typingIndicator(0));
+  scrollChat(chat);
+
+  var t1 = setTimeout(function() {
+    var typing = chat.querySelector('.typing-row'); if (typing) typing.remove();
+    appendHtml(chat, agentMsg("I looked at your accounts. Here\u2019s where you stand:"));
+    scrollChat(chat);
+  }, 800);
+  animTimers.push(t1);
+
+  var t2 = setTimeout(function() {
+    appendHtml(chat, cardBlock(
+      '<div style="font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:4px;display:flex;align-items:center;gap:6px"><div style="color:#003087">'+svgIcon('trendingUp',18)+'</div>Financial Snapshot</div>'+
+      '<div class="health-grid">'+
+        '<div class="health-item">'+scoreRing(676, 850, '#B8860B', 'Fair')+'</div>'+
+        '<div class="health-item"><div class="h-label">Checking</div><div class="h-value" style="color:#1A1A1A">$1,247</div></div>'+
+        '<div class="health-item"><div class="h-label">Savings</div><div class="h-value" style="color:#1A1A1A">$840</div></div>'+
+        '<div class="health-item"><div class="h-label">Subscriptions</div><div class="h-value fair">8 ($127/mo)</div></div>'+
+        '<div class="health-item"><div class="h-label">Monthly Spending</div><div class="h-value fair">~$3,100</div></div>'+
+        '<div class="health-item"><div class="h-label">Auto-Save</div><div class="h-value warn">Not set up</div></div>'+
+      '</div>'
+    ));
+    if (window.lucide) lucide.createIcons();
+    scrollChat(chat);
+  }, 1600);
+  animTimers.push(t2);
+
+  var t3 = setTimeout(function() {
+    appendHtml(chat, agentMsg("I see a few things to work on. But first \u2014 something needs your attention right now."));
+    appendHtml(chat, quickReplies([{label:"What needs my attention?", action:"advancePhase()"}], 0));
+    if (window.lucide) lucide.createIcons();
+    scrollChat(chat);
+  }, 2400);
+  animTimers.push(t3);
+}
+
+function appendOverdraftAlert(chat) {
+  clearTimers();
+  var qr = chat.querySelector('.quick-replies'); if (qr) qr.remove();
+
+  appendHtml(chat, userMsg("What needs my attention?"));
+  appendHtml(chat, typingIndicator(0));
+  scrollChat(chat);
+
+  var t1 = setTimeout(function() {
+    var typing = chat.querySelector('.typing-row'); if (typing) typing.remove();
+    appendHtml(chat, cardBlock(
+      '<div class="smart-card" style="margin:0;background:#FFF8E7;border-left-color:#B8860B">'+
+        '<div class="smart-card-title" style="color:#B8860B"><div style="color:#B8860B">'+svgIcon('alertTriangle',16)+'</div>\u26a0\ufe0f Upcoming Overdraft Risk</div>'+
+        '<div class="smart-card-body">Your rent ($1,200) auto-pays on April 10. After that, you\u2019ll have $47 in checking. Your electric bill ($127) hits April 12 \u2014 that\u2019s an overdraft.</div>'+
+      '</div>'
+    ));
+    scrollChat(chat);
+  }, 800);
+  animTimers.push(t1);
+
+  var t2 = setTimeout(function() {
+    appendHtml(chat, agentMsg("I can move $300 from savings to checking right now to cover both. Want me to?"));
+    scrollChat(chat);
+  }, 1400);
+  animTimers.push(t2);
+
+  var t3 = setTimeout(function() {
+    appendHtml(chat, cardBlock(
+      '<div style="font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:8px;display:flex;align-items:center;gap:6px"><div style="color:#003087">'+svgIcon('transfer',18)+'</div>Suggested Transfer</div>'+
+      '<div class="confirm-row"><span class="confirm-label">From</span><span class="confirm-value">Savings (...7892) \u2014 $840</span></div>'+
+      '<div class="confirm-row"><span class="confirm-label">To</span><span class="confirm-value">Checking (...4821) \u2014 $1,247</span></div>'+
+      '<div class="confirm-row"><span class="confirm-label">Amount</span><span class="confirm-value" style="font-size:16px;font-weight:800;color:#003087">$300.00</span></div>'+
+      '<div style="border-top:1px solid #E5E7EB;margin-top:8px;padding-top:8px">'+
+        '<div class="confirm-row"><span class="confirm-label">After transfer</span><span class="confirm-value">Checking $1,547 / Savings $540</span></div>'+
+        '<div class="confirm-row"><span class="confirm-label">Covers</span><span class="confirm-value" style="color:#0D8552">Rent ($1,200) + Electric ($127) + $220 buffer</span></div>'+
+      '</div>'
+    ));
+    if (window.lucide) lucide.createIcons();
+    scrollChat(chat);
+  }, 2000);
+  animTimers.push(t3);
+
+  var t4 = setTimeout(function() {
+    appendHtml(chat, quickReplies([{label:"Move $300", action:"switchScenario(2)"}, {label:"I\u2019ll handle it", action:"switchScenario(2)"}], 0));
+    scrollChat(chat);
+  }, 2800);
+  animTimers.push(t4);
+}
+
+function appendSaveConfirm(chat) {
+  clearTimers();
+  var qr = chat.querySelector('.quick-replies'); if (qr) qr.remove();
+
+  appendHtml(chat, userMsg("Set up $150/paycheck"));
+  appendHtml(chat, typingIndicator(0));
+  scrollChat(chat);
+
+  var t1 = setTimeout(function() {
+    var typing = chat.querySelector('.typing-row'); if (typing) typing.remove();
+    appendHtml(chat, agentMsg("All set! Here\u2019s your savings plan:"));
+    scrollChat(chat);
+  }, 600);
+  animTimers.push(t1);
+
+  var t2 = setTimeout(function() {
+    appendHtml(chat, cardBlock(
+      '<div style="font-size:14px;font-weight:700;color:#1A1A1A;margin-bottom:8px;display:flex;align-items:center;gap:6px"><div style="color:#0D8552">'+svgIcon('checkCircle',18)+'</div>Auto-Save Active</div>'+
+      '<div class="confirm-row"><span class="confirm-label">Amount</span><span class="confirm-value">$150 per paycheck</span></div>'+
+      '<div class="confirm-row"><span class="confirm-label">Frequency</span><span class="confirm-value">Every 2 weeks</span></div>'+
+      '<div class="confirm-row"><span class="confirm-label">First transfer</span><span class="confirm-value">April 15, 2026</span></div>'+
+      '<div class="confirm-row"><span class="confirm-label">Overdraft guard</span><span class="confirm-value" style="color:#0D8552">If checking drops below $200, auto-save pauses</span></div>'+
+      '<div style="border-top:1px solid #E5E7EB;margin-top:8px;padding-top:8px">'+
+        '<div class="confirm-row"><span class="confirm-label">6-month projection</span><span class="confirm-value" style="color:#0D8552">$1,800</span></div>'+
+        '<div class="confirm-row"><span class="confirm-label">1-year projection</span><span class="confirm-value" style="color:#0D8552">$3,600</span></div>'+
+      '</div>'
+    ));
+    if (window.lucide) lucide.createIcons();
+    scrollChat(chat);
+  }, 1200);
+  animTimers.push(t2);
+
+  var t3 = setTimeout(function() {
+    appendHtml(chat, agentMsg("Now that your savings are running \u2014 want to see what you\u2019re paying for every month? I found a few things worth looking at."));
+    appendHtml(chat, quickReplies([{label:"Show my subscriptions", action:"switchScenario(3)"}, {label:"That\u2019s enough for today", action:"switchScenario(3)"}], 0));
+    scrollChat(chat);
+  }, 1800);
+  animTimers.push(t3);
+}
+
+/* ================================================================
+   RENDERING ENGINE
+   ================================================================ */
+function renderScenarioPills() {
+  var el = document.getElementById('scenarioPills');
+  el.innerHTML = SCENARIOS.map(function(s, i) {
+    return '<button class="pill'+(i===currentScenario?' active':'')+'" onclick="switchScenario('+i+')">'+svgIcon(s.icon, 14)+s.label+'</button>';
+  }).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderDots() {
+  var scenario = SCENARIOS[currentScenario];
+  var el = document.getElementById('stepDots');
+  var html = '';
+  for (var i = 0; i < scenario.steps.length; i++) {
+    var cls = 'dot';
+    if (i === currentStep) cls += ' active';
+    else if (i < currentStep) cls += ' done';
+    html += '<div class="'+cls+'"></div>';
+  }
+  el.innerHTML = html;
+}
+
+function renderStep(backward) {
+  clearTimers();
+  var scenario = SCENARIOS[currentScenario];
+  var wrap = document.getElementById('slidesWrap');
+
+  var oldActive = wrap.querySelector('.slide.active');
+  if (oldActive) {
+    oldActive.classList.remove('active');
+    oldActive.classList.add(exitUpNext ? 'exit-up' : 'exit-left');
+    setTimeout(function() { oldActive.remove(); }, 400);
+  }
+  exitUpNext = false;
+
+  var slide = document.createElement('div');
+  slide.className = 'slide';
+  if (backward) slide.classList.add('no-anim');
+  slide.innerHTML = getStepContent(scenario.id, currentStep);
+  wrap.appendChild(slide);
+
+  if (window.lucide) lucide.createIcons();
+  setTimeout(function() { slide.classList.add('active'); }, 50);
+
+  updateNav();
+  autoScrollChat();
+}
+
+function updateNav() {
+  var scenario = SCENARIOS[currentScenario];
+  var stepDef = scenario.steps[currentStep];
+  document.getElementById('stepLabel').textContent = stepDef.label;
+  document.getElementById('btnBack').disabled = currentStep === 0;
+  document.getElementById('btnNext').disabled = currentStep >= scenario.steps.length - 1;
+  renderDots();
+  updatePhoneTheme();
+}
+
+function updatePhoneTheme() {
+  var phone = document.getElementById('chasePhone');
+  phone.classList.remove('theme-dark', 'theme-header');
+  var scenario = SCENARIOS[currentScenario];
+  if (scenario.id === 'notification') phone.classList.add('theme-dark');
+  else if (scenario.id === 'snapshot' && currentStep === 0) phone.classList.add('theme-header');
+  document.getElementById('stepDots').style.display = scenario.id === 'notification' ? 'none' : '';
+  document.getElementById('stepNav').style.display = scenario.id === 'notification' ? 'none' : '';
+}
+
+function autoScrollChat() {
+  var t1 = setTimeout(function() {
+    var c = document.querySelector('.slide.active .chat-container');
+    if (c) c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
+  }, 1500);
+  animTimers.push(t1);
+  var t2 = setTimeout(function() {
+    var c = document.querySelector('.slide.active .chat-container');
+    if (c) c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
+  }, 2500);
+  animTimers.push(t2);
+}
+
+/* ================================================================
+   V2: NAVIGATION
+   Primary: advancePhase() called by quick replies and tappable elements
+   Fallback: navigate() called by arrow buttons and keyboard
+   ================================================================ */
+
+function advancePhase() {
+  var scenario = SCENARIOS[currentScenario];
+  var next = currentStep + 1;
+  if (next >= scenario.steps.length) return;
+
+  currentStep = next;
+  var stepDef = scenario.steps[currentStep];
+
+  if (stepDef.type === 'append') {
+    performAppendReveal(scenario.id, currentStep);
+    updateNav();
+  } else {
+    renderStep();
+  }
+}
+
+function navigate(dir) {
+  var scenario = SCENARIOS[currentScenario];
+  var next = currentStep + dir;
+  if (next < 0 || next >= scenario.steps.length) return;
+
+  if (dir > 0) {
+    currentStep = next;
+    var stepDef = scenario.steps[currentStep];
+    if (stepDef.type === 'append') {
+      performAppendReveal(scenario.id, currentStep);
+      updateNav();
+    } else {
+      renderStep();
+    }
+  } else {
+    currentStep = next;
+    renderStep(true);
+  }
+}
+
+function switchScenario(idx) {
+  if (idx === currentScenario) return;
+  currentScenario = idx;
+  currentStep = 0;
+  renderScenarioPills();
+  renderStep();
+}
+
+/* Keyboard nav */
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); navigate(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); navigate(-1); }
+  if (e.key >= '1' && e.key <= '4') { e.preventDefault(); switchScenario(parseInt(e.key) - 1); }
+});
+
+/* ================================================================
+   INIT
+   ================================================================ */
+renderScenarioPills();
+renderStep();
+</script>
+</body>
+</html>
