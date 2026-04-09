@@ -8,9 +8,9 @@ An interactive prototype, one-pager, and presentation deck exploring how agentic
 
 | Deliverable | Link |
 |---|---|
-| Interactive Prototype | [View Prototype](https://vpark777.github.io/intuit-case-study/) |
-| One-Pager | [View PDF](https://vpark777.github.io/intuit-case-study/one-pager.pdf) |
-| Presentation Slides | [View PDF](https://vpark777.github.io/intuit-case-study/slides.pdf) |
+| Interactive Prototype | [View Prototype](https://vpark.github.io/intuit-case-study/) |
+| One-Pager | [View PDF](https://vpark.github.io/intuit-case-study/one-pager.pdf) |
+| Presentation Slides | [View PDF](https://vpark.github.io/intuit-case-study/slides.pdf) |
 
 ---
 
